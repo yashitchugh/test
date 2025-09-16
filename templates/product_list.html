@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Products</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <main>
+        <h2>Available Artisan Products</h2>
+        <div>
+            {% for prod in products %}
+                <div style="margin-bottom:30px; padding:10px; border-bottom:1px solid #ccc;">
+                   <img src="{{ url_for('uploaded_file', filename=prod['product_img']) }}" width="120" style="float:left; margin-right:15px;">
+                   <b>{{ prod['name'] }}</b> &mdash; ₹{{ prod['price'] }}<br>
+                   <small>{{ prod['story'] }}</small><br>
+                   <a href="{{ url_for('product_detail', idx=loop.index0) }}">View Details & Buy</a>
+                </div>
+            {% endfor %}
+
+
+        </div>
+    </main>
+</body>
+</html>

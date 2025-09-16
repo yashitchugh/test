@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Upload Product</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <main>
+        <h2>Upload Product</h2>
+        <form method="post" enctype="multipart/form-data">
+            Product Name: <input type="text" name="product_name" required><br>
+            Price: <input type="text" name="price" required><br>
+            Product Image: <input type="file" name="product_img" accept="image/*" required><br>
+            Customization options:<br>
+            Color: <input type="text" name="color_options"><br>
+            Material: <input type="text" name="material_options"><br>
+            Design: <input type="text" name="design_options"><br>
+            <button type="submit">Upload</button>
+        </form>
+    </main>
+</body>
+</html>

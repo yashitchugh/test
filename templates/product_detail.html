@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Product Details</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <main>
+        <h2>{{ product.name }}</h2>
+        <img src="{{ url_for('uploaded_file', filename=product['product_img']) }}" width="270">
+        <b>Price: ₹{{ product.price }}</b>
+        <p>{{ product.story }}</p>
+        <form method="post">
+            <h4>Customization Options</h4>
+            {% if product.customization.color %}
+                <label>Select Color:</label>
+                <select name="color">
+                    {% for option in product.customization.color.split(',') %}
+                        <option value="{{ option|trim }}">{{ option|trim }}</option>
+                    {% endfor %}
+                </select><br>
+            {% endif %}
+            {% if product.customization.material %}
+                <label>Select Material:</label>
+                <select name="material">
+                    {% for option in product.customization.material.split(',') %}
+                        <option value="{{ option|trim }}">{{ option|trim }}</option>
+                    {% endfor %}
+                </select><br>
+            {% endif %}
+            {% if product.customization.design %}
+                <label>Select Design:</label>
+                <select name="design">
+                    {% for option in product.customization.design.split(',') %}
+                        <option value="{{ option|trim }}">{{ option|trim }}</option>
+                    {% endfor %}
+                </select><br>
+            {% endif %}
+            <button type="submit">Buy Now</button>
+        </form>
+    </main>
+</body>
+</html>
