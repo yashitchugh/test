@@ -1,39 +1,34 @@
 import os
 from flask import Flask, render_template, request, redirect, url_for, session, flash, send_from_directory
 from werkzeug.utils import secure_filename
-# import openai  # Uncomment if integrating real AI story generation
 
-app = Flask(__name__)  # Create Flask app BEFORE routes
+app = Flask(__name__)
 app.secret_key = 'your-secret-key'  # Change in production
 
 UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+ALLOWED_IMG_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+ALLOWED_3D_EXTENSIONS = {'glb', 'gltf', 'obj', 'stl'}
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# In-memory "database"
 artisans = []
 users = []
 products = []
 
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+def allowed_file(filename, allowed_ext):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_ext
 
-# Serve uploaded files correctly
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-# --- AI Story Placeholder (swap with real AI if desired) ---
 def generate_story(product_name):
     return f"This unique creation, '{product_name}', is a symbol of Indian heritage and skill!"
 
-# --- Home Page ---
 @app.route('/')
 def home():
     return render_template('index.html')
 
-# --- Artisan Signup ---
 @app.route('/artisan_signup', methods=['GET', 'POST'])
 def artisan_signup():
     if request.method == 'POST':
@@ -41,7 +36,6 @@ def artisan_signup():
         file = request.files['profile_pic']
         filename = secure_filename(file.filename)
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-
         artisan = {
             "name": data['name'],
             "phone": data['phone'],
@@ -56,16 +50,26 @@ def artisan_signup():
         return redirect(url_for('upload_product'))
     return render_template('artisan_signup.html')
 
-# --- Product Upload (by Artisan) ---
 @app.route('/upload_product', methods=['GET', 'POST'])
 def upload_product():
     if 'artisan' not in session:
         return redirect(url_for('artisan_signup'))
     if request.method == 'POST':
         data = request.form
-        file = request.files['product_img']
-        filename = secure_filename(file.filename)
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        img_file = request.files['product_img']
+        model_file = request.files['product_3dfile']
+
+        img_filename = secure_filename(img_file.filename)
+        if not allowed_file(img_filename, ALLOWED_IMG_EXTENSIONS):
+            flash('Invalid image type. Allowed: png, jpg, jpeg, gif.')
+            return redirect(request.url)
+        img_file.save(os.path.join(app.config['UPLOAD_FOLDER'], img_filename))
+
+        model_filename = secure_filename(model_file.filename)
+        if not allowed_file(model_filename, ALLOWED_3D_EXTENSIONS):
+            flash('Invalid 3D model type. Allowed: glb, gltf, obj, stl.')
+            return redirect(request.url)
+        model_file.save(os.path.join(app.config['UPLOAD_FOLDER'], model_filename))
 
         story = generate_story(data['product_name'])
         customization = {
@@ -77,7 +81,8 @@ def upload_product():
             "name": data['product_name'],
             "price": data['price'],
             "artisan_email": session['artisan'],
-            "product_img": filename,
+            "product_img": img_filename,
+            "product_3dfile": model_filename,
             "story": story,
             "customization": customization
         }
@@ -85,7 +90,6 @@ def upload_product():
         return redirect(url_for('product_list'))
     return render_template('upload_product.html')
 
-# --- User Signup/Login ---
 @app.route('/user_signup', methods=['GET', 'POST'])
 def user_signup():
     if request.method == 'POST':
@@ -93,7 +97,6 @@ def user_signup():
         file = request.files['profile_pic']
         filename = secure_filename(file.filename)
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-
         user = {
             "name": data['name'],
             "email": data['email'],
@@ -117,22 +120,22 @@ def login():
         flash('Invalid credentials')
     return render_template('login.html')
 
-# --- Product List ---
 @app.route('/products')
 def product_list():
     return render_template('product_list.html', products=products)
 
-# --- Product Details / Customization ---
 @app.route('/product/<int:idx>', methods=['GET', 'POST'])
 def product_detail(idx):
+    if idx < 0 or idx >= len(products):
+        flash('Product does not exist!')
+        return redirect(url_for('product_list'))
     product = products[idx]
     if request.method == 'POST':
-        # Handle customization and payment here later
+        # Placeholder for customization/payment
         flash('Order placed! Payment flow to be implemented.')
         return redirect(url_for('product_list'))
     return render_template('product_detail.html', product=product, idx=idx)
 
-# --- Logout ---
 @app.route('/logout')
 def logout():
     session.clear()
