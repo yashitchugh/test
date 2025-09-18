@@ -1,13 +1,29 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <title>Product Details</title>
+    <title>{{ product.name }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <!-- Add model-viewer library -->
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 </head>
 <body>
     <main>
         <h2>{{ product.name }}</h2>
-        <img src="{{ url_for('uploaded_file', filename=product['product_img']) }}" width="270">
+        
+        {% if product.product_3dfile %}
+        <!-- 3D Model Preview -->
+        <model-viewer
+            src="{{ url_for('uploaded_file', filename=product['product_3dfile']) }}"
+            alt="3D view of {{ product.name }}"
+            camera-controls
+            auto-rotate
+            style="width: 350px; height: 350px; background: #ececec; display: block; margin: 0 auto 20px;">
+        </model-viewer>
+        {% else %}
+        <!-- If no 3D model present show the image as fallback -->
+        <img src="{{ url_for('uploaded_file', filename=product['product_img']) }}" width="300" style="display: block; margin: 0 auto 20px;">
+        {% endif %}
+        
         <b>Price: ₹{{ product.price }}</b>
         <p>{{ product.story }}</p>
         <form method="post">
