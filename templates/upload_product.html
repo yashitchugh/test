@@ -3,6 +3,8 @@
 <head>
     <title>Upload Product</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+     
+
 </head>
 <body>
     <main>
@@ -12,11 +14,14 @@
             Price: <input type="text" name="price" required><br>
             Product Image: <input type="file" name="product_img" accept="image/*" required><br>
             Customization options:<br>
-            Color: <input type="text" name="color_options"><br>
-            Material: <input type="text" name="material_options"><br>
-            Design: <input type="text" name="design_options"><br>
+            Color: <input type="text" name="color_options" placeholder="e.g. red, blue, green"><br>
+            Material: <input type="text" name="material_options" placeholder="e.g. wood, metal"><br>
+            Design: <input type="text" name="design_options" placeholder="e.g. floral, geometric"><br>
+            Product 3D Model: <input type="file" name="product_3dfile" accept=".glb,.gltf,.obj,.stl" required><br>
             <button type="submit">Upload</button>
         </form>
     </main>
+    <script src="{{ url_for('static', filename='js/product_viewer.js') }}"></script>
+
 </body>
 </html>
