@@ -3,21 +3,58 @@
 <head>
     <title>Products</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        .product-card {
+            display: flex;
+            align-items: center;
+            margin-bottom: 24px;
+            padding: 16px;
+            border-radius: 14px;
+            box-shadow: 0 2px 12px #eee;
+            min-height: 120px;
+        }
+        .product-img {
+            border-radius: 10px;
+            margin-right: 24px;
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+            flex-shrink: 0;
+            background: #f7f7f7;
+        }
+        .product-info {
+            flex: 1;
+        }
+        .product-info b {
+            font-size: 1.2rem;
+        }
+        .product-info .price {
+            color: #4caf50;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .product-info .story {
+            color: #444;
+            margin: 4px 0 10px 0;
+            display: block;
+        }
+    </style>
 </head>
 <body>
     <main>
         <h2>Available Artisan Products</h2>
         <div>
             {% for prod in products %}
-                <div style="margin-bottom:30px; padding:10px; border-bottom:1px solid #ccc;">
-                   <img src="{{ url_for('uploaded_file', filename=prod['product_img']) }}" width="120" style="float:left; margin-right:15px;">
-                   <b>{{ prod['name'] }}</b> &mdash; ₹{{ prod['price'] }}<br>
-                   <small>{{ prod['story'] }}</small><br>
-                   <a href="{{ url_for('product_detail', idx=loop.index0) }}">View Details & Buy</a>
+                <div class="product-card">
+                    <img class="product-img" src="{{ url_for('uploaded_file', filename=prod['product_img']) }}" alt="{{ prod['name'] }}">
+                    <div class="product-info">
+                        <b>{{ prod['name'] }}</b>
+                        <span class="price">₹{{ prod['price'] }}</span><br>
+                        <span class="story">{{ prod['story'] }}</span>
+                        <a href="{{ url_for('product_detail', idx=loop.index0) }}">View Details & Buy</a>
+                    </div>
                 </div>
             {% endfor %}
-
-
         </div>
     </main>
 </body>
