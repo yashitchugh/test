@@ -2,3 +2,4 @@ flask
 Werkzeug
 huggingface-hub
 gunicorn
+python-dotenv
