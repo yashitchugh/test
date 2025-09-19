@@ -41,7 +41,7 @@ def generate_story(product_name):
         model="HuggingFaceH4/zephyr-7b-beta",
         messages=[
             {"role": "system", "content": "You are a salesman."},
-            {"role": "user", "content": "Share some historical background about knives such that the reader feels like they should buy one."}
+            {"role": "user", "content": "Share some historical background about {product_name} such that the reader feels like they should buy one."}
         ],
         max_tokens=200,
         temperature=0.7
