@@ -2,7 +2,9 @@ import os
 from flask import Flask, render_template, request, redirect, url_for, session, flash, send_from_directory
 from werkzeug.utils import secure_filename
 from huggingface_hub import InferenceClient
-
+from dotenv import load_dotenv
+load_dotenv()
+hf_api = os.getenv("HUGGINGFACEHUB_API_TOKEN")
 app = Flask(__name__)
 app.secret_key = 'your-secret-key'  # Change in production
 
@@ -16,17 +18,21 @@ artisans = []
 users = []
 products = []
 
+
 def allowed_file(filename, allowed_ext):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_ext
+
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-os.environ["HUGGINGFACEHUB_API_TOKEN"] = "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"
+
+os.environ["HUGGINGFACEHUB_API_TOKEN"] = hf_api
+
 
 def generate_story(product_name):
-    client = InferenceClient(api_key=os.environ["HUGGINGFACEHUB_API_TOKEN"])
+    client = InferenceClient(api_key=hf_api)
     response = client.chat_completion(
         model="HuggingFaceH4/zephyr-7b-beta",
         messages=[
@@ -38,9 +44,11 @@ def generate_story(product_name):
     )
     return response.choices[0].message["content"]
 
+
 @app.route('/')
 def home():
     return render_template('index.html')
+
 
 @app.route('/artisan_signup', methods=['GET', 'POST'])
 def artisan_signup():
@@ -63,6 +71,7 @@ def artisan_signup():
         return redirect(url_for('upload_product'))
     return render_template('artisan_signup.html')
 
+
 @app.route('/upload_product', methods=['GET', 'POST'])
 def upload_product():
     if 'artisan' not in session:
@@ -82,7 +91,8 @@ def upload_product():
         if not allowed_file(model_filename, ALLOWED_3D_EXTENSIONS):
             flash('Invalid 3D model type. Allowed: glb, gltf, obj, stl.')
             return redirect(request.url)
-        model_file.save(os.path.join(app.config['UPLOAD_FOLDER'], model_filename))
+        model_file.save(os.path.join(
+            app.config['UPLOAD_FOLDER'], model_filename))
 
         story = generate_story(data['product_name'])
         customization = {
@@ -103,6 +113,7 @@ def upload_product():
         return redirect(url_for('product_list'))
     return render_template('upload_product.html')
 
+
 @app.route('/user_signup', methods=['GET', 'POST'])
 def user_signup():
     if request.method == 'POST':
@@ -121,6 +132,7 @@ def user_signup():
         return redirect(url_for('product_list'))
     return render_template('user_signup.html')
 
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -133,9 +145,11 @@ def login():
         flash('Invalid credentials')
     return render_template('login.html')
 
+
 @app.route('/products')
 def product_list():
     return render_template('product_list.html', products=products)
+
 
 @app.route('/product/<int:idx>', methods=['GET', 'POST'])
 def product_detail(idx):
@@ -149,10 +163,12 @@ def product_detail(idx):
         return redirect(url_for('product_list'))
     return render_template('product_detail.html', product=product, idx=idx)
 
+
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('home'))
+
 
 if __name__ == '__main__':
     app.run(debug=True)
