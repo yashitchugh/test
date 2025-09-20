@@ -5,6 +5,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <!-- Add model-viewer library -->
     <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body>
     <main>
@@ -52,8 +53,58 @@
                     {% endfor %}
                 </select><br>
             {% endif %}
-            <button type="submit">Buy Now</button>
+            <!-- Don't use the default Buy Now, use Razorpay button below -->
         </form>
+        <!-- Razorpay Payment Button -->
+        <button id="payBtn" style="margin-top: 20px; background: #228be6; color: white; padding: 10px 30px; border-radius: 5px;">Pay Now</button>
+        <input type="hidden" id="amount" value="{{ product.price }}" />
     </main>
+    <script>
+        // Point to your Node backend for create-order and verify-payment
+        const serverBaseUrl = 'http://localhost:3000';
+        const key = "rzp_test_1DP5mmOlF5G5ag"; // test key id
+
+        document.getElementById('payBtn').addEventListener('click', async () => {
+            const amountInRupees = Number(document.getElementById('amount').value) || 500;
+            const amount = amountInRupees * 100; // Razorpay expects paise
+
+            // 1) Create order on backend
+            const orderResp = await fetch(serverBaseUrl + '/create-order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ amount })
+            }).then(r => r.json());
+
+            const options = {
+                key: key,
+                amount: orderResp.amount,
+                currency: orderResp.currency,
+                name: "{{ product.name }}",
+                description: "Artisan Marketplace Purchase",
+                order_id: orderResp.id,
+                handler: async function (response){
+                    alert("Payment completed. Verifying...");
+                    const verifyResp = await fetch(serverBaseUrl + '/verify-payment', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(response)
+                    }).then(r => r.json());
+                    if (verifyResp.success) {
+                        alert("Payment verified on server ✅");
+                    } else {
+                        alert("Verification failed ❌: " + verifyResp.message);
+                    }
+                },
+                prefill: {
+                    name: "Artisan Buyer",
+                    email: "test@example.com",
+                    contact: "9999999999"
+                },
+                notes: { order_id: orderResp.receipt }
+            };
+            const rzp = new Razorpay(options);
+            rzp.open();
+        });
+    </script>
 </body>
 </html>
