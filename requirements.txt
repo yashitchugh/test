@@ -3,3 +3,8 @@ Werkzeug
 huggingface-hub
 gunicorn
 
+python-dotenv
+Flask-PyMongo 
+dnspython
+
+
