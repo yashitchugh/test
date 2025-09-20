@@ -3,5 +3,6 @@ Werkzeug
 huggingface-hub
 gunicorn
 python-dotenv
+npm install express body-parser razorpay
 Flask-PyMongo 
 dnspython
