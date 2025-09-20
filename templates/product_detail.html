@@ -1,59 +1,60 @@
 <!doctype html>
 <html lang="en">
+
 <head>
     <title>{{ product.name }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <!-- Add model-viewer library -->
     <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 </head>
+
 <body>
     <main>
         <h2>{{ product.name }}</h2>
-        
+
         {% if product.product_3dfile %}
         <!-- 3D Model Preview -->
-        <model-viewer
-            src="{{ url_for('uploaded_file', filename=product['product_3dfile']) }}"
-            alt="3D view of {{ product.name }}"
-            camera-controls
-            auto-rotate
+        <model-viewer src="{{ url_for('uploaded_file', filename=product['product_3dfile']) }}"
+            alt="3D view of {{ product.name }}" camera-controls auto-rotate
             style="width: 350px; height: 350px; background: #ececec; display: block; margin: 0 auto 20px;">
         </model-viewer>
         {% else %}
         <!-- If no 3D model present show the image as fallback -->
-        <img src="{{ url_for('uploaded_file', filename=product['product_img']) }}" width="300" style="display: block; margin: 0 auto 20px;">
+        <img src="{{ url_for('uploaded_file', filename=product['product_img']) }}" width="300"
+            style="display: block; margin: 0 auto 20px;">
         {% endif %}
-        
+
         <b>Price: ₹{{ product.price }}</b>
         <p>{{ product.story }}</p>
         <form method="post">
             <h4>Customization Options</h4>
-            {% if product.customization.color %}
-                <label>Select Color:</label>
-                <select name="color">
-                    {% for option in product.customization.color.split(',') %}
-                        <option value="{{ option|trim }}">{{ option|trim }}</option>
-                    {% endfor %}
-                </select><br>
+            {% if product["customization"]["color"] %}
+            <label>Select Color:</label>
+            <select name="color">
+                {% for option in product.customization.color.split(',') %}
+                <option value="{{ option|trim }}">{{ option|trim }}</option>
+                {% endfor %}
+            </select><br>
             {% endif %}
             {% if product.customization.material %}
-                <label>Select Material:</label>
-                <select name="material">
-                    {% for option in product.customization.material.split(',') %}
-                        <option value="{{ option|trim }}">{{ option|trim }}</option>
-                    {% endfor %}
-                </select><br>
+            <label>Select Material:</label>
+            <select name="material">
+                {% for option in product.customization.material.split(',') %}
+                <option value="{{ option|trim }}">{{ option|trim }}</option>
+                {% endfor %}
+            </select><br>
             {% endif %}
             {% if product.customization.design %}
-                <label>Select Design:</label>
-                <select name="design">
-                    {% for option in product.customization.design.split(',') %}
-                        <option value="{{ option|trim }}">{{ option|trim }}</option>
-                    {% endfor %}
-                </select><br>
+            <label>Select Design:</label>
+            <select name="design">
+                {% for option in product.customization.design.split(',') %}
+                <option value="{{ option|trim }}">{{ option|trim }}</option>
+                {% endfor %}
+            </select><br>
             {% endif %}
             <button type="submit">Buy Now</button>
         </form>
     </main>
 </body>
+
 </html>

@@ -1,12 +1,23 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, session, flash, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_from_directory, jsonify, send_file
 from werkzeug.utils import secure_filename
 from huggingface_hub import InferenceClient
 from dotenv import load_dotenv
+from flask_pymongo import PyMongo
+from bson.objectid import ObjectId
+
+
 load_dotenv()
+db_user = os.getenv("db_user")
+db_pass = os.getenv("db_pass")
 hf_api = os.getenv("HUGGINGFACEHUB_API_TOKEN")
 app = Flask(__name__)
 app.secret_key = 'your-secret-key'  # Change in production
+
+app.config['MONGO_URI'] = "mongodb+srv://{db_user}:{db_pass}@artisans.s8y9gfm.mongodb.net/marketplace"
+mongo = PyMongo(app)
+db = mongo.db
+
 
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_IMG_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -14,18 +25,25 @@ ALLOWED_3D_EXTENSIONS = {'glb', 'gltf', 'obj', 'stl'}
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-artisans = []
-users = []
-products = []
+artisans = db["artisans"]
+users = db["users"]
+products = db["product_details"]
 
 
 def allowed_file(filename, allowed_ext):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_ext
 
 
+# @app.route('/uploads/<filename>')
+# def uploaded_file(filename):
+#     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    try:
+        # Retrieve the file from GridFS
+        return mongo.send_file(filename)
+    except Exception as e:
+        return f"File not found: {e}", 404
 
 
 os.environ["HUGGINGFACEHUB_API_TOKEN"] = hf_api
@@ -56,7 +74,9 @@ def artisan_signup():
         data = request.form
         file = request.files['profile_pic']
         filename = secure_filename(file.filename)
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        # file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        # Save file to GridFS and get the unique ID
+        mongo.save_file(filename, file)
         artisan = {
             "name": data['name'],
             "phone": data['phone'],
@@ -66,7 +86,7 @@ def artisan_signup():
             "profile_pic": filename,
             "bank_info": data.get('bank_info', '')
         }
-        artisans.append(artisan)
+        artisans.insert_one(artisan)
         session['artisan'] = artisan['email']
         return redirect(url_for('upload_product'))
     return render_template('artisan_signup.html')
@@ -85,15 +105,15 @@ def upload_product():
         if not allowed_file(img_filename, ALLOWED_IMG_EXTENSIONS):
             flash('Invalid image type. Allowed: png, jpg, jpeg, gif.')
             return redirect(request.url)
-        img_file.save(os.path.join(app.config['UPLOAD_FOLDER'], img_filename))
-
+        # img_file.save(os.path.join(app.config['UPLOAD_FOLDER'], img_filename))
         model_filename = secure_filename(model_file.filename)
         if not allowed_file(model_filename, ALLOWED_3D_EXTENSIONS):
             flash('Invalid 3D model type. Allowed: glb, gltf, obj, stl.')
             return redirect(request.url)
-        model_file.save(os.path.join(
-            app.config['UPLOAD_FOLDER'], model_filename))
-
+        # model_file.save(os.path.join(
+        #     app.config['UPLOAD_FOLDER'], model_filename))
+        mongo.save_file(model_filename, model_file)
+        mongo.save_file(img_file.filename, img_file,)
         story = generate_story(data['product_name'])
         customization = {
             "color": data.get('color_options', ''),
@@ -109,7 +129,7 @@ def upload_product():
             "story": story,
             "customization": customization
         }
-        products.append(product)
+        products.insert_one(product)
         return redirect(url_for('product_list'))
     return render_template('upload_product.html')
 
@@ -120,14 +140,16 @@ def user_signup():
         data = request.form
         file = request.files['profile_pic']
         filename = secure_filename(file.filename)
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        # file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        # Save file to GridFS and get the unique ID
+        mongo.save_file(filename, file)
         user = {
             "name": data['name'],
             "email": data['email'],
             "password": data['password'],
             "profile_pic": filename
         }
-        users.append(user)
+        users.insert_one(user)
         session['user'] = user['email']
         return redirect(url_for('product_list'))
     return render_template('user_signup.html')
@@ -148,15 +170,16 @@ def login():
 
 @app.route('/products')
 def product_list():
-    return render_template('product_list.html', products=products)
+    return render_template('product_list.html', products=list(products.find()))
 
 
 @app.route('/product/<int:idx>', methods=['GET', 'POST'])
 def product_detail(idx):
-    if idx < 0 or idx >= len(products):
+    products_len = products.count_documents({})
+    if idx <= 0 or idx > products_len:
         flash('Product does not exist!')
         return redirect(url_for('product_list'))
-    product = products[idx]
+    product = products.find().sort('_id', 1).skip(idx).next()
     if request.method == 'POST':
         # Placeholder for customization/payment
         flash('Order placed! Payment flow to be implemented.')
