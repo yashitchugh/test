@@ -2,7 +2,9 @@ import os
 from flask import Flask, render_template, request, redirect, url_for, session, flash, send_from_directory
 from werkzeug.utils import secure_filename
 from huggingface_hub import InferenceClient
-
+from dotenv import load_dotenv
+load_dotenv()
+hf_api = os.getenv("HUGGINGFACEHUB_API_TOKEN")
 app = Flask(__name__)
 app.secret_key = 'your-secret-key'  # Change in production
 
@@ -26,26 +28,20 @@ def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 
-# def generate_story(product_name):
-    # return f"This unique creation, '{product_name}', is a symbol of Indian heritage and skill!"
-os.environ["HUGGINGFACEHUB_API_TOKEN"] = ""
+os.environ["HUGGINGFACEHUB_API_TOKEN"] = hf_api
 
 
 def generate_story(product_name):
-
-    client = InferenceClient(api_key="")
-
+    client = InferenceClient(api_key=hf_api)
     response = client.chat_completion(
         model="HuggingFaceH4/zephyr-7b-beta",
         messages=[
             {"role": "system", "content": "You are a salesman."},
-            {"role": "user", "content": "Share some historical background about knives such that the reader feels like they should buy one."}
+            {"role": "user", "content": f"Share some historical background about {product_name} such that the reader feels like they should buy one."}
         ],
         max_tokens=200,
         temperature=0.7
     )
-
-    # print(response)
     return response.choices[0].message["content"]
 
 
