@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, session, flash, send_from_directory, jsonify, send_file
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_from_directory
 from werkzeug.utils import secure_filename
 from huggingface_hub import InferenceClient
 from dotenv import load_dotenv
@@ -14,22 +14,15 @@ hf_api = os.getenv("HUGGINGFACEHUB_API_TOKEN")
 app = Flask(__name__)
 app.secret_key = 'your-secret-key'  # Change in production
 
-app.config['MONGO_URI'] = f"mongodb+srv://{db_user}:{db_pass}@artisans.s8y9gfm.mongodb.net/marketplace?retryWrites=true&w=majority"
-
-
-mongo = PyMongo(app)
-db = mongo.db
-
-
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_IMG_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 ALLOWED_3D_EXTENSIONS = {'glb', 'gltf', 'obj', 'stl'}
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-artisans = db["artisans"]
-users = db["users"]
-products = db["product_details"]
+artisans = []
+users = []
+products = []
 
 
 def allowed_file(filename, allowed_ext):
@@ -76,16 +69,14 @@ def artisan_signup():
         data = request.form
         file = request.files['profile_pic']
         filename = secure_filename(file.filename)
-        # file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        # Save file to GridFS and get the unique ID
-        mongo.save_file(filename, file)
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
         artisan = {
             "name": data['name'],
             "phone": data['phone'],
             "email": data['email'],
             "address": data['address'],
             "skills": data['skills'],
-            "profile_pic": filename,
+            "profile_pic": file_id,
             "bank_info": data.get('bank_info', '')
         }
         artisans.insert_one(artisan)
@@ -105,13 +96,18 @@ def upload_product():
         model_file = request.files['product_3dfile']
 
         img_filename = secure_filename(img_file.filename)
+        if not allowed_file(img_filename, ALLOWED_IMG_EXTENSIONS):
+            flash('Invalid image type. Allowed: png, jpg, jpeg, gif.')
+            return redirect(request.url)
+        img_file.save(os.path.join(app.config['UPLOAD_FOLDER'], img_filename))
+
         model_filename = secure_filename(model_file.filename)
+        if not allowed_file(model_filename, ALLOWED_3D_EXTENSIONS):
+            flash('Invalid 3D model type. Allowed: glb, gltf, obj, stl.')
+            return redirect(request.url)
+        model_file.save(os.path.join(
+            app.config['UPLOAD_FOLDER'], model_filename))
 
-        # Save files to GridFS
-        mongo.save_file(img_filename, img_file)
-        mongo.save_file(model_filename, model_file)
-
-        # Generate auto description/story for the product
         story = generate_story(data['product_name'])
 
         customization = {
@@ -129,8 +125,7 @@ def upload_product():
             "story": story,
             "customization": customization
         }
-
-        products.insert_one(product)
+        products.append(product)
         return redirect(url_for('product_list'))
 
     return render_template('upload_product.html')
@@ -172,6 +167,11 @@ def login():
                 return redirect(url_for('product_list'))
         flash('Invalid credentials')
     return render_template('login.html')
+
+
+@app.route('/products')
+def product_list():
+    return render_template('product_list.html', products=products)
 
 
 @app.route('/product/<int:idx>', methods=['GET', 'POST'])
