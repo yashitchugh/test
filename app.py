@@ -39,7 +39,7 @@ def uploaded_file(filename):
 
 def generate_story(product_name):
     genai.configure(api_key=gemini_api)
-    model = genai.GenerativeModel("gemini-2.5-flash")
+    model = genai.GenerativeModel("gemini-2.5-flash-lite")
     response = model.generate_content(
         f"Share some historical background about {product_name} such that the reader feels like they should buy one."
     )
@@ -154,3 +154,4 @@ def logout():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
