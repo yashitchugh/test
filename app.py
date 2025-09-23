@@ -1,14 +1,15 @@
 import os
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from werkzeug.utils import secure_filename
-from huggingface_hub import InferenceClient
 from dotenv import load_dotenv
 from flask_pymongo import PyMongo
+import google.generativeai as genai
 
 load_dotenv()
 db_user = os.getenv("db_user")
 db_pass = os.getenv("db_pass")
-hf_api = os.getenv("HUGGINGFACEHUB_API_TOKEN")
+gemini_api = os.getenv("GEMINI_API_KEY")
+
 app = Flask(__name__)
 app.secret_key = 'your-secret-key'  # Change in production
 
@@ -37,17 +38,12 @@ def uploaded_file(filename):
         return f"File not found: {e}", 404
 
 def generate_story(product_name):
-    client = InferenceClient(api_key=hf_api)
-    response = client.chat_completion(
-        model="HuggingFaceH4/zephyr-7b-beta",
-        messages=[
-            {"role": "system", "content": "You are a salesman."},
-            {"role": "user", "content": f"Share some historical background about {product_name} such that the reader feels like they should buy one."}
-        ],
-        max_tokens=200,
-        temperature=0.7
+    genai.configure(api_key=gemini_api)
+    model = genai.GenerativeModel("gemini-2.5-flash")
+    response = model.generate_content(
+        f"Share some historical background about {product_name} such that the reader feels like they should buy one."
     )
-    return response.choices[0].message["content"]
+    return response.text
 
 @app.route('/')
 def home():
@@ -109,6 +105,18 @@ def upload_product():
 def product_list():
     return render_template('product_list.html', products=list(products.find()))
 
+@app.route('/product/<int:idx>', methods=['GET', 'POST'])
+def product_detail(idx):
+    products_list = list(products.find())
+    if idx <= 0 or idx > len(products_list):
+        flash('Product does not exist!')
+        return redirect(url_for('product_list'))
+    product = products_list[idx - 1]
+    if request.method == 'POST':
+        flash('Order placed! Payment flow to be implemented.')
+        return redirect(url_for('product_list'))
+    return render_template('product_detail.html', product=product, idx=idx)
+
 @app.route('/user_signup', methods=['GET', 'POST'])
 def user_signup():
     if request.method == 'POST':
@@ -138,18 +146,6 @@ def login():
             return redirect(url_for('product_list'))
         flash('Invalid credentials')
     return render_template('login.html')
-
-@app.route('/product/<int:idx>', methods=['GET', 'POST'])
-def product_detail(idx):
-    products_len = products.count_documents({})
-    if idx <= 0 or idx > products_len:
-        flash('Product does not exist!')
-        return redirect(url_for('product_list'))
-    product = products.find().sort('_id', 1).skip(idx - 1).next()
-    if request.method == 'POST':
-        flash('Order placed! Payment flow to be implemented.')
-        return redirect(url_for('product_list'))
-    return render_template('product_detail.html', product=product, idx=idx)
 
 @app.route('/logout')
 def logout():
